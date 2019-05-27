@@ -1,0 +1,40 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Index
+{% endblock %}
+
+{% block main %}
+    <table class="table table-striped" style="width:100%">
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Name</th>
+                <th>Shares</th>
+                <th>Price</th>
+                <th>TOTAL</th>
+            </tr>
+        </thead>
+        <tfoot>
+            <tr>
+                <td colspan="4"></td>
+                <td> <b> {{ total_cash | usd }} </b> </td>
+            </tr>
+        </tfoot>
+        <tbody>
+            {% for row in rows_portfolios %}
+                <tr>
+                    <td>{{row.symbol}}</td>
+                    <td>{{row.name}}</td>
+                    <td>{{row.shares}}</td>
+                    <td>{{row.price | usd}}</td>
+                    <td>{{row.total | usd}}</td>
+                </tr>
+            {% endfor %}
+            <tr>
+                <td colspan="4">CASH</td>
+                <td>{{ current_cash | usd}}</td>
+            </tr>
+        </tbody>
+    </table>
+{% endblock %}

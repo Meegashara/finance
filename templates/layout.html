@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+    <head>
+
+        <meta charset="utf-8"/>
+        <meta content="initial-scale=1, width=device-width" name="viewport"/>
+
+        <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet"/>
+
+        <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet"/>
+
+        <script type="text/javascript" src="http://code.jquery.com/jquery-3.3.1.js"integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60="crossorigin="anonymous"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+
+        <script>
+        $(document).ready(function() {
+
+            var hash = window.location.hash.substr(1);
+            var href = $('#nav li a').each(function(){
+                var href = $(this).attr('href');
+                if(hash==href.substr(0,href.length-5)){
+                    var toLoad = hash+'.html #content';
+                    $('#content').load(toLoad)
+                    }
+                    });
+
+                    $('#nav li a').click(function(){
+
+                        var toLoad = $(this).attr('href')+' #content';
+                        $('#content').hide('fast',loadContent);
+                        $('#load').remove();
+                        $('#wrapper').append('<span id="load">LOADING...</span>');
+                        $('#load').fadeIn('normal');
+                        window.location.hash = $(this).attr('href').substr(0,$(this).attr('href').length-5);
+                        function loadContent() {
+                            $('#content').load(toLoad,'',showNewContent())
+                        }
+                        function showNewContent() {
+                            $('#content').show('normal',hideLoader());
+                        }
+                        function hideLoader() {
+                            $('#load').fadeOut('normal');
+                        }
+                        return false;
+                    });
+        });
+        </script>
+
+        <title>web-arch: {% block title %}{% endblock %}</title>
+
+    </head>
+
+    <body>
+
+        <div id="wrapper" class="container">
+
+            <nav class="navbar navbar-default">
+                <div class="container-fluid">
+                    <div class="navbar-header">
+                        <button aria-expanded="false" class="navbar-toggle collapsed" data-target="#navbar" data-toggle="collapse" type="button">
+                            <span class="sr-only">Toggle navigation</span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                        </button>
+
+                    </div>
+                    <div class="collapse navbar-collapse" id="navbar">
+                        {% if session.user_id %}
+                            <ul id="nav" class="nav navbar-nav">
+                                <li><a class="navbar-brand" href="{{ url_for('index') }}">web-arch</a></li>
+                                <li><a href="{{ url_for('quote') }}">Quote</a></li>
+                                <li><a href="{{ url_for('buy') }}">Buy</a></li>
+                                <li><a href="{{ url_for('sell') }}">Sell</a></li>
+                                <li><a href="{{ url_for('history') }}">History</a></li>
+                            </ul>
+                            <ul class="nav navbar-nav navbar-right">
+                                <li><a href="{{ url_for('logout') }}">Log Out</a></li>
+                            </ul>
+                        {% else %}
+                            <ul class="nav navbar-nav navbar-right">
+                                <li><a href="{{ url_for('register') }}">Register</a></li>
+                                <li><a href="{{ url_for('login') }}">Log In</a></li>
+                            </ul>
+                        {% endif %}
+                    </div>
+                </div>
+            </nav>
+
+            {% if get_flashed_messages() %}
+                <header>
+                    <div class="alert alert-info" role="alert">
+                        {{ get_flashed_messages() | join(" ") }}
+                    </div>
+                </header>
+            {% endif %}
+
+            <main id="content">
+                {% block main %}{% endblock %}
+            </main>
+
+        </div>
+
+    </body>
+
+</html>
