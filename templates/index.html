@@ -5,6 +5,19 @@
 {% endblock %}
 
 {% block main %}
+    <script>
+        $(document).ready(function () {
+            $('#delete').on('click', function () {
+                let _prompt = prompt('Сколько удалить?', '');
+                console.log('delete', _prompt)
+            });
+            $('#add').on('click', function () {
+                let _prompt = prompt('Сколько добавить?', '');
+                console.log('delete', _prompt)
+            })
+            }
+        );
+    </script>
     <table class="table table-striped" style="width:100%">
         <thead>
             <tr>
@@ -13,6 +26,8 @@
                 <th>Shares</th>
                 <th>Price</th>
                 <th>TOTAL</th>
+                <th>Delete</th>
+                <th>Add</th>
             </tr>
         </thead>
         <tfoot>
@@ -29,6 +44,8 @@
                     <td>{{row.shares}}</td>
                     <td>{{row.price | usd}}</td>
                     <td>{{row.total | usd}}</td>
+                    <td><button id="delete">Delete</button></td>
+                    <td><button id="add">Add</button></td>
                 </tr>
             {% endfor %}
             <tr>
