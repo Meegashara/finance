@@ -26,7 +26,7 @@ def lookup(symbol):
 
     try:
         # Получить json
-        url = "https://api.iextrading.com/1.0/stock/{}/quote".format(symbol)
+        url = "https://cloud.iexapis.com/stable/stock/{}/quote?token=pk_812e421a68ab4cb795fa08c8528de90e".format(symbol)
         webpage = urllib.request.urlopen(url)
 
         # загрузить содержимое json
@@ -64,7 +64,7 @@ def showup():
     """mostactive"""
 
     # Получить json
-    url = "https://api.iextrading.com/1.0/stock/market/list/infocus"
+    url = "https://cloud.iexapis.com/stable/stock/market/list/mostactive?token=pk_812e421a68ab4cb795fa08c8528de90e"
     webpage = urllib.request.urlopen(url)
 
     # загрузить содержимое json
