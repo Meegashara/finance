@@ -5,7 +5,6 @@
 {% endblock %}
 
 {% block main %}
-    <form action="{{ url_for('quote') }}" method="post">
         <fieldset>
             <table class="table table-striped">
         <thead>
@@ -26,11 +25,13 @@
         </tbody>
     </table>
             <div class="form-group">
-                <input autocomplete="off" autofocus class="form-control" name="symbol" placeholder="Symbol" type="text"/>
+                <input autocomplete="off" autofocus id="input" class="form-control" name="symbol" placeholder="Symbol" type="text"/>
             </div>
+        </fieldset>
+    <form id="quote" method="post">
             <div class="form-group">
                 <button class="btn btn-default" type="submit">Quote</button>
             </div>
-        </fieldset>
     </form>
+    <p id="quote_result"></p>
 {% endblock %}

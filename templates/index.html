@@ -6,15 +6,69 @@
 
 {% block main %}
     <script>
-        $(document).ready(function () {
-            $('#delete').on('click', function () {
-                let _prompt = prompt('Сколько удалить?', '');
-                console.log('delete', _prompt)
-            });
-            $('#add').on('click', function () {
-                let _prompt = prompt('Сколько добавить?', '');
-                console.log('delete', _prompt)
-            })
+        $(document).on('click', 'button', function () {
+                let _class = $(this).attr('class');
+                if (_class === 'delete') {
+                    let _prompt = prompt('Сколько продать?', '');
+                    if (_prompt === null) {
+                        return
+                    }
+                if (isNaN(_prompt)) {
+                    alert('Введите число');
+                    return
+                } else {
+                    symbol = $(this).attr('name');
+                    let price = $('#price_' + symbol).text().replace('$', '');
+                    $.ajax({
+                        type: 'POST',
+                        url: '/selling',
+                        data: JSON.stringify({'shares': _prompt, 'symbol': symbol, 'price': price}),
+                        contentType: "application/json",
+                        success: function (data) {
+                            shares = data['share'];
+                            old_total = parseFloat($('#' + '_' + symbol).text().replace('$', '').replace(',', ''));
+                            new_total = old_total + data['price'];
+                            $('#cash').text('$' + data['cash'].toFixed(2));
+                            console.log($('#' + symbol).text());
+                            $('#' + symbol).text(shares);
+                            $('#_' + symbol).text('$' + parseFloat(data['total']).toFixed(2));
+                        },
+                    })
+                }
+                }
+                if (_class === 'add') {
+                    console.log('add');
+                    let _prompt = prompt('Сколько купить?', '');
+                if (_prompt === null) {
+                    return
+                }
+                if (isNaN(_prompt)) {
+                    alert('Введите число');
+                    return
+                } else {
+                    symbol = $(this).attr('name');
+                    shares = parseInt($('#' + symbol).text());
+                    if (shares < _prompt) {
+                        alert('Вы не можете купить столько акций!');
+                        return
+                    }
+                    let price = $('#price_' + symbol).text().replace('$', '');
+                    $.ajax({
+                        type: 'POST',
+                        url: '/buying',
+                        data: JSON.stringify({'shares': _prompt, 'symbol': symbol, 'price': price}),
+                        contentType: "application/json",
+                        success: function (data) {
+                            shares = data['share'];
+                            old_total = parseFloat($('#' + '_' + symbol).text().replace('$', '').replace(',', ''));
+                            $('#' + symbol).text(shares);
+                            new_total = old_total - data['price'];
+                            $('#cash').text('$' + data['cash'].toFixed(2));
+                            $('#_' + symbol).text('$' + parseFloat(data['total']).toFixed(2));
+                        },
+                    });
+                }
+                }
             }
         );
     </script>
@@ -26,31 +80,25 @@
                 <th>Shares</th>
                 <th>Price</th>
                 <th>TOTAL</th>
-                <th>Delete</th>
-                <th>Add</th>
+                <th>Sell</th>
+                <th>Buy</th>
             </tr>
         </thead>
-        <tfoot>
-            <tr>
-                <td colspan="4"></td>
-                <td> <b> {{ total_cash | usd }} </b> </td>
-            </tr>
-        </tfoot>
         <tbody>
             {% for row in rows_portfolios %}
                 <tr>
                     <td>{{row.symbol}}</td>
                     <td>{{row.name}}</td>
-                    <td>{{row.shares}}</td>
-                    <td>{{row.price | usd}}</td>
-                    <td>{{row.total | usd}}</td>
-                    <td><button id="delete">Delete</button></td>
-                    <td><button id="add">Add</button></td>
+                    <td id="{{row.symbol}}">{{row.shares}}</td>
+                    <td id="price_{{ row.symbol }}">{{row.price | usd}}</td>
+                    <td id="_{{ row.symbol }}">{{row.total | usd}}</td>
+                    <td><button name="{{ row.symbol }}" class="delete">Sell</button></td>
+                    <td><button name="{{ row.symbol }}" class="add">Buy</button></td>
                 </tr>
             {% endfor %}
             <tr>
                 <td colspan="4">CASH</td>
-                <td>{{ current_cash | usd}}</td>
+                <td id="cash">{{ current_cash | usd}}</td>
             </tr>
         </tbody>
     </table>

@@ -11,12 +11,27 @@
 
         <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet"/>
 
-        <script type="text/javascript" src="http://code.jquery.com/jquery-3.3.1.js"integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60="crossorigin="anonymous"></script>
+        <script type="text/javascript" src="http://code.jquery.com/jquery-3.3.1.js"integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60=" crossorigin="anonymous"></script>
         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
-
         <script>
+        $(document).on('submit', '#quote', function (event) {
+            event.preventDefault();
+            let input = $('#input').val();
+            if (input.length < 1) {
+                alert('Введите название!');
+                return;
+            }
+            $.ajax({
+                type: 'POST',
+                url: '/description',
+                data: JSON.stringify({'symbol': input}),
+                contentType: "application/json",
+                success: function (data) {
+                    $('#quote_result').text(data['result']);
+                },
+            })
+        });
         $(document).ready(function() {
-
             var hash = window.location.hash.substr(1);
             var href = $('#nav li a').each(function(){
                 var href = $(this).attr('href');

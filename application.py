@@ -1,5 +1,5 @@
 from cs50 import SQL
-from flask import Flask, flash, redirect, render_template, request, session, url_for
+from flask import Flask, jsonify, redirect, render_template, request, session, url_for
 from flask_session import Session
 from passlib.apps import custom_app_context as pwd_context
 from tempfile import mkdtemp
@@ -20,17 +20,17 @@ app.jinja_env.filters["usd"] = usd
 
 # configure session to use filesystem (instead of signed cookies)
 app.config["SESSION_FILE_DIR"] = mkdtemp()
-app.config["SESSION_PERMANENT"] = False
+app.config["SESSION_PERMANENT"] = True
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
 # SQLite database
 db = SQL("sqlite:///finance.db")
 
+
 @app.route("/")
 @login_required
 def index():
-
     rows_portfolios = db.execute("SELECT * FROM portfolios WHERE id = :id", id=session["user_id"])
 
     if rows_portfolios == []:
@@ -42,7 +42,6 @@ def index():
         for row in rows_portfolios:
             new_portfolios_dict = {}
             quote = lookup(row["symbol"])
-            print(quote)
             new_portfolios_dict["symbol"] = quote["symbol"]
             new_portfolios_dict["name"] = quote["name"]
             new_portfolios_dict["shares"] = row["shares"]
@@ -58,6 +57,73 @@ def index():
             for row in new_rows_portfolios:
                 total_cash += row["total"]
         return render_template("index.html", rows_portfolios=new_rows_portfolios, current_cash=cash, total_cash=total_cash)
+
+
+@app.route('/selling', methods=['POST'])
+def selling_shares():
+    rows_portfolios = db.execute("SELECT * FROM portfolios WHERE id = :id", id=session["user_id"])
+    cashier = db.execute("SELECT cash FROM users WHERE id = :id", id=session["user_id"])
+    cash = cashier[0]['cash']
+
+    if request.method == 'POST':
+
+        data = request.get_json()
+        print(data)
+        shares = data['shares']
+        symbol = data['symbol']
+        db.execute("UPDATE portfolios SET shares = shares + :shares WHERE symbol = :symbol", shares=shares, symbol=symbol)
+        new_shares = db.execute('SELECT shares FROM portfolios WHERE symbol = :symbol', symbol=symbol)
+        price = float(data['price'])
+        updated_cash = cash + int(shares) * price
+        total = int(new_shares[0]['shares']) * price
+        db.execute("UPDATE users SET cash = :updated_cash WHERE id = :id", updated_cash=updated_cash, id=session["user_id"])
+        return jsonify({'share': new_shares[0]['shares'], 'cash': updated_cash, 'price': price, 'total': total})
+
+
+@app.route('/buying', methods=['POST'])
+def buying_shares():
+    cashier = db.execute("SELECT cash FROM users WHERE id = :id", id=session["user_id"])
+    cash = cashier[0]['cash']
+
+    if request.method == 'POST':
+
+        data = request.get_json()
+        print(data)
+        shares = data['shares']
+        symbol = data['symbol']
+        price = float(data['price'])
+
+        db.execute("UPDATE portfolios SET shares = shares - :shares WHERE symbol = :symbol", symbol=symbol,
+                   shares=shares)
+        new_shares = db.execute('SELECT shares FROM portfolios WHERE symbol = :symbol', symbol=symbol)
+        updated_cash = cash - int(shares) * price
+        total = int(new_shares[0]['shares']) * price
+        print(updated_cash)
+        db.execute("UPDATE users SET cash = :updated_cash WHERE id = :id", id=session["user_id"], updated_cash=updated_cash)
+        return jsonify({'share': new_shares[0]['shares'], 'cash': updated_cash, 'price': price, 'total': total})
+
+
+@app.route("/description", methods=['POST'])
+# @login_required
+def description():
+    """Получение цены акции"""
+    if request.method == "POST":
+
+        # проверка на заполнение символа
+        data = request.get_json()
+        # перевод в верхний регистр введенного символа
+        symbol = data.get("symbol").upper()
+
+        # получение данных о акции
+        quote = lookup(symbol)
+
+        # проверка на ошибку получения данных
+        if quote is None:
+            return jsonify({'result': 'Such quote does not found'})
+
+        result = 'A share of {} ({}) costs ${}'.format(quote['name'], symbol, quote['price'])
+        return jsonify({'result': result})
+
 
 @app.route("/buy", methods=["GET", "POST"])
 @login_required
@@ -82,7 +148,7 @@ def buy():
         quote = lookup(symbol)
 
         # проверка на ошибку получения данных
-        if quote == None:
+        if quote is None:
             return apology("invalid symbol", 400)
 
         # проверка на достаточность средств
@@ -164,11 +230,10 @@ def logout():
     # перенаправление на страницу логина
     return redirect(url_for("login"))
 
-@app.route("/quote", methods=["GET", "POST"])
+@app.route("/quote", methods=["GET", 'POST'])
 @login_required
 def quote():
     """Получение цены акции"""
-
     if request.method == "POST":
 
         # проверка на заполнение символа
