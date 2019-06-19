@@ -1,5 +1,5 @@
 from cs50 import SQL
-from flask import Flask, jsonify, redirect, render_template, request, session, url_for
+from flask import Flask, jsonify, redirect, render_template, request, session, url_for, flash
 from flask_session import Session
 from passlib.apps import custom_app_context as pwd_context
 from tempfile import mkdtemp
@@ -74,7 +74,7 @@ def selling_shares():
         db.execute("UPDATE portfolios SET shares = shares + :shares WHERE symbol = :symbol", shares=shares, symbol=symbol)
         new_shares = db.execute('SELECT shares FROM portfolios WHERE symbol = :symbol', symbol=symbol)
         price = float(data['price'])
-        updated_cash = cash + int(shares) * price
+        updated_cash = cash - int(shares) * price
         total = int(new_shares[0]['shares']) * price
         db.execute("UPDATE users SET cash = :updated_cash WHERE id = :id", updated_cash=updated_cash, id=session["user_id"])
         return jsonify({'share': new_shares[0]['shares'], 'cash': updated_cash, 'price': price, 'total': total})
@@ -93,13 +93,16 @@ def buying_shares():
         symbol = data['symbol']
         price = float(data['price'])
 
-        db.execute("UPDATE portfolios SET shares = shares - :shares WHERE symbol = :symbol", symbol=symbol,
-                   shares=shares)
+        db.execute("UPDATE portfolios SET shares = shares - :shares WHERE symbol = :symbol", symbol=symbol, shares=shares)
         new_shares = db.execute('SELECT shares FROM portfolios WHERE symbol = :symbol', symbol=symbol)
-        updated_cash = cash - int(shares) * price
+        print(new_shares[0]['shares'])
+        if new_shares[0]['shares'] == 0:
+            db.execute("DELETE FROM portfolios WHERE id = :id AND symbol = :symbol", id=session["user_id"], symbol=symbol)
+        updated_cash = cash + int(shares) * price
         total = int(new_shares[0]['shares']) * price
         print(updated_cash)
         db.execute("UPDATE users SET cash = :updated_cash WHERE id = :id", id=session["user_id"], updated_cash=updated_cash)
+        db.execute("INSERT INTO history (id, symbol, shares, price) VALUES (:id, :symbol, :shares, :price)", id=session["user_id"], symbol=symbol, shares=-(int(shares)), price=price)
         return jsonify({'share': new_shares[0]['shares'], 'cash': updated_cash, 'price': price, 'total': total})
 
 
@@ -170,7 +173,7 @@ def buy():
         if len(rows) == 0:
             db.execute("INSERT INTO portfolios (id, symbol, shares) VALUES (:id, :symbol, :shares)", id=session["user_id"], symbol=symbol, shares=shares)
         else:
-            db.execute("UPDATE portfolios SET shares = shares + :shares WHERE id = :id", id=session["user_id"], shares=shares)
+            db.execute("UPDATE portfolios SET shares = shares + :shares WHERE id = :id AND symbol = :symbol", id=session["user_id"], shares=shares, symbol=symbol)
 
         # обновление таблицы с историей в БД
         db.execute("INSERT INTO history (id, symbol, shares, price) VALUES (:id, :symbol, :shares, :price)", id=session["user_id"], symbol=symbol, shares=shares, price=price)
@@ -360,7 +363,7 @@ def sell():
             db.execute("DELETE FROM portfolios WHERE id = :id AND symbol = :symbol", id=session["user_id"], symbol=symbol)
         # иначе обновляем таблицу
         elif updated_shares > 0:
-            db.execute("UPDATE portfolios SET shares = :updated_shares WHERE id = :id", id=session["user_id"], updated_shares=updated_shares)
+            db.execute("UPDATE portfolios SET shares = :updated_shares WHERE id = :id AND symbol = :symbol", id=session["user_id"], updated_shares=updated_shares, symbol=symbol)
 
         # добавление информации о продажи акций
         db.execute("INSERT INTO history (id, symbol, shares, price) VALUES (:id, :symbol, :shares, :price)", id=session["user_id"], symbol=symbol, shares=-(shares), price=price)
